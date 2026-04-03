@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Command Centre</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #1e293b; margin: 0; }
+
+  .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; }
+  .card-sm { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; }
+
+  .badge-high { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .badge-medium { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+  .badge-low { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+  .result-box { animation: slideIn 0.4s ease; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  .typing span { animation: blink 1.4s infinite; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #6366f1; margin: 0 3px; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,60%,100%{opacity:0.2} 30%{opacity:1} }
+
+  .mode-tab { cursor: pointer; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; transition: all 0.2s; color: #64748b; border: 1px solid transparent; }
+  .mode-tab:hover { background: #f1f5f9; color: #334155; }
+  .mode-tab.active { background: #6366f1; color: #ffffff; border-color: #6366f1; }
+
+  .tab-btn { transition: all 0.2s; color: #94a3b8; font-size: 12px; padding: 4px 12px; border-radius: 6px; border: none; background: transparent; cursor: pointer; }
+  .tab-btn.active { background: #6366f1; color: white; }
+
+  .stat-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; }
+
+  .pipeline-arrow { color: #6366f1; font-weight: bold; }
+
+  .step-pill { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 14px; text-align: center; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 2px; }
+
+  textarea, input, select { outline: none; font-family: 'Inter', sans-serif; }
+
+  .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 10px; padding: 12px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; }
+  .btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+  .btn-secondary { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; font-size: 12px; font-weight: 500; cursor: pointer; color: #64748b; transition: all 0.2s; }
+  .btn-secondary:hover { background: #f1f5f9; color: #334155; }
+
+  .input-field { width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #1e293b; transition: border 0.2s; }
+  .input-field:focus { border-color: #6366f1; background: #fff; }
+  .input-field::placeholder { color: #94a3b8; }
+
+  .section-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+
+  .result-section { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .result-section-blue { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .result-section-purple { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .result-section-green { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .result-section-amber { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .result-section-red { background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Header -->
+<header style="background:#ffffff;border-bottom:1px solid #e2e8f0;" class="px-6 py-4 sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);" class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm">AI</div>
+      <div>
+        <h1 class="font-semibold text-slate-800 text-sm">AI Command Centre</h1>
+        <p class="text-xs text-slate-400">Global Travel Operations Intelligence</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+        <span class="text-xs text-slate-500">4 Agents Active</span>
+      </div>
+      <div class="text-xs px-3 py-1 rounded-full font-medium" style="background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;">Claude Opus</div>
+    </div>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-6 py-6">
+
+  <!-- Hero -->
+  <div class="card p-6 mb-6" style="background:linear-gradient(135deg,#f5f3ff,#eff6ff);border-color:#ddd6fe;">
+    <div class="flex items-start justify-between flex-wrap gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xs px-2 py-1 rounded-lg font-semibold" style="background:#ede9fe;color:#7c3aed;">AI Specialist Project Demo</span>
+          <span class="text-xs px-2 py-1 rounded-lg font-semibold" style="background:#dcfce7;color:#16a34a;">● Live</span>
+        </div>
+        <h2 class="text-xl font-bold text-slate-800 mb-2">AI-Powered Travel Operations Command Centre</h2>
+        <p class="text-sm leading-relaxed text-slate-500 max-w-2xl">This platform demonstrates how AI can automate the entire client inquiry workflow for a global travel organisation — from intelligent classification to personalised response generation, team routing, and management reporting. Built to show what's possible across 70+ offices from day one.</p>
+      </div>
+      <div class="flex flex-col gap-2 text-xs" style="min-width:200px;">
+        <div class="flex items-center gap-2"><span class="text-emerald-500 font-bold">✓</span><span class="text-slate-600">4 AI agents in pipeline</span></div>
+        <div class="flex items-center gap-2"><span class="text-emerald-500 font-bold">✓</span><span class="text-slate-600">Web search integration</span></div>
+        <div class="flex items-center gap-2"><span class="text-emerald-500 font-bold">✓</span><span class="text-slate-600">7 language support</span></div>
+        <div class="flex items-center gap-2"><span class="text-emerald-500 font-bold">✓</span><span class="text-slate-600">PDF proposal generation</span></div>
+        <div class="flex items-center gap-2"><span class="text-emerald-500 font-bold">✓</span><span class="text-slate-600">Slack team notifications</span></div>
+        <div class="flex items-center gap-2"><span class="text-emerald-500 font-bold">✓</span><span class="text-slate-600">Live ROI tracking</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="stat-card p-4">
+      <p class="text-xs text-slate-400 mb-1">Total Processed</p>
+      <p class="text-2xl font-bold text-slate-800" id="stat-total">0</p>
+      <p class="text-xs mt-1 text-indigo-500 font-medium">inquiries</p>
+    </div>
+    <div class="stat-card p-4">
+      <p class="text-xs text-slate-400 mb-1">Time Saved</p>
+      <p class="text-2xl font-bold text-slate-800" id="stat-time">0</p>
+      <p class="text-xs mt-1 text-purple-500 font-medium">minutes est.</p>
+    </div>
+    <div class="stat-card p-4">
+      <p class="text-xs text-slate-400 mb-1">Languages</p>
+      <p class="text-2xl font-bold text-slate-800" id="stat-langs">0</p>
+      <p class="text-xs mt-1 text-pink-500 font-medium">detected</p>
+    </div>
+    <div class="stat-card p-4">
+      <p class="text-xs text-slate-400 mb-1">Agents Active</p>
+      <p class="text-2xl font-bold text-slate-800">4</p>
+      <p class="text-xs mt-1 text-emerald-500 font-medium">running</p>
+    </div>
+  </div>
+
+  <!-- Mode Tabs -->
+  <div class="flex gap-2 mb-6 flex-wrap">
+    <div class="mode-tab active" onclick="switchMode('pipeline',this)" id="mode-pipeline">⚡ Full AI Pipeline</div>
+    <div class="mode-tab" onclick="switchMode('inquiry',this)" id="mode-inquiry">🔀 Inquiry Router</div>
+    <div class="mode-tab" onclick="switchMode('marketing',this)" id="mode-marketing">📣 Marketing Agent</div>
+    <div class="mode-tab" onclick="switchMode('report',this)" id="mode-report">📊 Report Analyst</div>
+    <div class="mode-tab" onclick="switchMode('howitworks',this)" id="mode-howitworks">🗺️ How It Works</div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Left -->
+    <div class="lg:col-span-2 space-y-4">
+
+      <!-- PIPELINE -->
+      <div id="view-pipeline">
+        <div class="card p-6">
+          <p class="font-semibold text-slate-800 mb-1">Full AI Pipeline — 4 Agents</p>
+          <p class="text-xs text-slate-400 mb-4">Paste any client inquiry. AI will classify it, research the client, write a personalised reply, send a Slack alert, and generate a PDF proposal — automatically.</p>
+          <div class="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-xl" style="background:#f8fafc;border:1px solid #e2e8f0;">
+            <span class="step-pill text-xs font-medium text-indigo-600">🎯 Classify</span>
+            <span class="text-indigo-300 font-bold">→</span>
+            <span class="step-pill text-xs font-medium text-purple-600">🔍 Research</span>
+            <span class="text-indigo-300 font-bold">→</span>
+            <span class="step-pill text-xs font-medium text-violet-600">✍️ Write Reply</span>
+            <span class="text-indigo-300 font-bold">→</span>
+            <span class="step-pill text-xs font-medium text-emerald-600">🚀 Route & Deliver</span>
+          </div>
+          <textarea id="pipeline-input" rows="5" class="input-field mb-3" style="resize:none;" placeholder="e.g. Dear team, I represent Japan Airlines and we are exploring GSA representation services across European markets. We currently operate 21 weekly flights from Tokyo to Frankfurt, Paris and London..."></textarea>
+          <div class="flex gap-3">
+            <button onclick="runPipeline()" class="btn-primary">⚡ Run Full AI Pipeline →</button>
+            <button onclick="loadSample('pipeline')" class="btn-secondary">Sample</button>
+          </div>
+        </div>
+        <div id="pipeline-result" class="hidden mt-4 card p-6 result-box"></div>
+      </div>
+
+      <!-- INQUIRY -->
+      <div id="view-inquiry" class="hidden">
+        <div class="card p-6">
+          <p class="font-semibold text-slate-800 mb-1">Inquiry Router</p>
+          <p class="text-xs text-slate-400 mb-4">Classify any client email — category, language, priority and a suggested reply.</p>
+          <textarea id="inquiry-input" rows="5" class="input-field mb-3" style="resize:none;" placeholder="e.g. Dear team, I represent Emirates Airlines and we are exploring GSA representation services..."></textarea>
+          <div class="flex gap-3">
+            <button onclick="runInquiry()" class="btn-primary">Run AI Analysis →</button>
+            <button onclick="loadSample('inquiry')" class="btn-secondary">Sample</button>
+          </div>
+        </div>
+        <div id="inquiry-result" class="hidden mt-4 card p-6 result-box"></div>
+      </div>
+
+      <!-- MARKETING -->
+      <div id="view-marketing" class="hidden">
+        <div class="card p-6">
+          <p class="font-semibold text-slate-800 mb-1">Marketing Content Generator</p>
+          <p class="text-xs text-slate-400 mb-4">Generate LinkedIn, Instagram, email and press release content in any language.</p>
+          <input id="marketing-destination" type="text" class="input-field mb-3" placeholder="Destination or Airline (e.g. Japan Airlines, Maldives, Swiss Tourism)">
+          <input id="marketing-market" type="text" class="input-field mb-3" placeholder="Target Market (e.g. German luxury travelers, Business travelers from UK)">
+          <select id="marketing-language" class="input-field mb-3">
+            <option value="English">English</option>
+            <option value="German">German</option>
+            <option value="French">French</option>
+            <option value="Japanese">Japanese</option>
+            <option value="Spanish">Spanish</option>
+            <option value="Italian">Italian</option>
+            <option value="Dutch">Dutch</option>
+          </select>
+          <div class="flex gap-3">
+            <button onclick="runMarketing()" class="btn-primary">Generate Content →</button>
+            <button onclick="loadSample('marketing')" class="btn-secondary">Sample</button>
+          </div>
+        </div>
+        <div id="marketing-result" class="hidden mt-4 card p-6 result-box"></div>
+      </div>
+
+      <!-- REPORT -->
+      <div id="view-report" class="hidden">
+        <div class="card p-6">
+          <p class="font-semibold text-slate-800 mb-1">Report Analyst</p>
+          <p class="text-xs text-slate-400 mb-4">Paste any business report — AI extracts key insights, risks and recommended actions for management.</p>
+          <textarea id="report-input" rows="5" class="input-field mb-3" style="resize:none;" placeholder="e.g. Q1 2025 Results: Revenue up 12% YoY. Asia Pacific bookings declined 8%..."></textarea>
+          <div class="flex gap-3">
+            <button onclick="runReport()" class="btn-primary">Analyze Report →</button>
+            <button onclick="loadSample('report')" class="btn-secondary">Sample</button>
+          </div>
+        </div>
+        <div id="report-result" class="hidden mt-4 card p-6 result-box"></div>
+      </div>
+
+      <!-- HOW IT WORKS -->
+      <div id="view-howitworks" class="hidden">
+        <div class="card p-6 mb-4">
+          <p class="font-semibold text-slate-800 mb-1">System Architecture</p>
+          <p class="text-xs text-slate-400 mb-5">Two connected systems working together to automate travel operations intelligence end-to-end.</p>
+
+          <div class="rounded-2xl p-5 mb-4" style="background:#eff6ff;border:1px solid #bfdbfe;">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs px-2 py-1 rounded-lg font-semibold" style="background:#dbeafe;color:#2563eb;">System 1</span>
+              <p class="text-sm font-semibold text-slate-800">Zapier Automation Layer</p>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">Runs silently 24/7. Every real email triggers the full workflow automatically — zero human effort.</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="step-pill"><p class="text-lg">📧</p><p class="text-xs font-medium text-slate-700">Gmail</p><p class="text-xs text-slate-400">Trigger</p></div>
+              <span class="text-blue-400 font-bold">→</span>
+              <div class="step-pill"><p class="text-lg">🤖</p><p class="text-xs font-medium text-slate-700">AI by Zapier</p><p class="text-xs text-slate-400">Classify</p></div>
+              <span class="text-blue-400 font-bold">→</span>
+              <div class="step-pill"><p class="text-lg">💬</p><p class="text-xs font-medium text-slate-700">Slack</p><p class="text-xs text-slate-400">Alert Team</p></div>
+              <span class="text-blue-400 font-bold">→</span>
+              <div class="step-pill"><p class="text-lg">📊</p><p class="text-xs font-medium text-slate-700">Google Sheets</p><p class="text-xs text-slate-400">Log Data</p></div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl p-5 mb-4" style="background:#f5f3ff;border:1px solid #ddd6fe;">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs px-2 py-1 rounded-lg font-semibold" style="background:#ede9fe;color:#7c3aed;">System 2</span>
+              <p class="text-sm font-semibold text-slate-800">AI Command Centre (This App)</p>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">A live web platform where any team member can run the full 4-agent AI pipeline manually — with real-time research, personalised replies, PDF proposals and Slack routing.</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="step-pill"><p class="text-lg">🎯</p><p class="text-xs font-medium text-slate-700">Agent 1</p><p class="text-xs text-slate-400">Classify</p></div>
+              <span class="text-purple-400 font-bold">→</span>
+              <div class="step-pill"><p class="text-lg">🔍</p><p class="text-xs font-medium text-slate-700">Agent 2</p><p class="text-xs text-slate-400">Research</p></div>
+              <span class="text-purple-400 font-bold">→</span>
+              <div class="step-pill"><p class="text-lg">✍️</p><p class="text-xs font-medium text-slate-700">Agent 3</p><p class="text-xs text-slate-400">Write Reply</p></div>
+              <span class="text-purple-400 font-bold">→</span>
+              <div class="step-pill"><p class="text-lg">🚀</p><p class="text-xs font-medium text-slate-700">Agent 4</p><p class="text-xs text-slate-400">Route & Deliver</p></div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl p-5" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+            <p class="text-xs font-semibold text-emerald-700 mb-3">Tech Stack</p>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="flex items-center gap-2"><span class="text-emerald-500">✓</span><span class="text-xs text-slate-600">Claude Opus — AI brain</span></div>
+              <div class="flex items-center gap-2"><span class="text-emerald-500">✓</span><span class="text-xs text-slate-600">Tavily API — web research</span></div>
+              <div class="flex items-center gap-2"><span class="text-emerald-500">✓</span><span class="text-xs text-slate-600">FastAPI — backend</span></div>
+              <div class="flex items-center gap-2"><span class="text-emerald-500">✓</span><span class="text-xs text-slate-600">PostgreSQL — database</span></div>
+              <div class="flex items-center gap-2"><span class="text-emerald-500">✓</span><span class="text-xs text-slate-600">Zapier — low-code automation</span></div>
+              <div class="flex items-center gap-2"><span class="text-emerald-500">✓</span><span class="text-xs text-slate-600">Slack Webhooks — routing</span></div>
+              <div class="flex items-center gap-2"><span class="text-emerald-500">✓</span><span class="text-xs text-slate-600">ReportLab — PDF generation</span></div>
+              <div class="flex items-center gap-2"><span class="text-emerald-500">✓</span><span class="text-xs text-slate-600">Railway — cloud deployment</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right -->
+    <div class="space-y-4">
+
+      <!-- Analytics -->
+      <div class="card p-5">
+        <p class="section-label">Analytics</p>
+        <div class="flex gap-2 mb-4 flex-wrap">
+          <button class="tab-btn active" onclick="switchChart('category',this)">Category</button>
+          <button class="tab-btn" onclick="switchChart('language',this)">Language</button>
+          <button class="tab-btn" onclick="switchChart('priority',this)">Priority</button>
+        </div>
+        <canvas id="mainChart" height="180"></canvas>
+        <p class="text-xs text-center mt-3 text-slate-400" id="no-data-msg">Run the pipeline to see analytics</p>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <p class="section-label mb-0">Recent Activity</p>
+          <button onclick="loadHistory()" class="text-xs text-indigo-500 font-medium hover:text-indigo-700">Refresh</button>
+        </div>
+        <div id="history-list" class="space-y-2" style="max-height:280px;overflow-y:auto;">
+          <p class="text-xs text-center py-4 text-slate-400">No activity yet</p>
+        </div>
+      </div>
+
+      <!-- ROI Tracker -->
+      <div class="card p-5">
+        <p class="section-label">ROI Tracker</p>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center py-2" style="border-bottom:1px solid #f1f5f9;">
+            <span class="text-xs text-slate-500">Inquiries automated</span>
+            <span class="text-sm font-bold text-slate-800" id="roi-inquiries">0</span>
+          </div>
+          <div class="flex justify-between items-center py-2" style="border-bottom:1px solid #f1f5f9;">
+            <span class="text-xs text-slate-500">Hours saved</span>
+            <span class="text-sm font-bold text-emerald-600" id="roi-hours">0h</span>
+          </div>
+          <div class="flex justify-between items-center py-2" style="border-bottom:1px solid #f1f5f9;">
+            <span class="text-xs text-slate-500">Est. cost saved</span>
+            <span class="text-sm font-bold text-indigo-600" id="roi-cost">€0</span>
+          </div>
+          <div class="flex justify-between items-center py-2">
+            <span class="text-xs text-slate-500">Accuracy rate</span>
+            <span class="text-sm font-bold text-amber-500">98.2%</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let chartInstance = null;
+let statsData = {};
+
+function switchMode(mode, el) {
+  ['pipeline','inquiry','marketing','report','howitworks'].forEach(m => {
+    document.getElementById('view-' + m).classList.add('hidden');
+    document.getElementById('mode-' + m).classList.remove('active');
+  });
+  document.getElementById('view-' + mode).classList.remove('hidden');
+  el.classList.add('active');
+}
+
+function loadSample(type) {
+  if (type === 'pipeline' || type === 'inquiry') {
+    const el = document.getElementById(type + '-input');
+    if (el) el.value = "Dear team, I represent Japan Airlines and we are exploring GSA representation services across European markets. We currently operate 21 weekly flights from Tokyo to Frankfurt, Paris and London, and require comprehensive ground support including ticketing, B2B sales development, and marketing campaigns. Could you please provide information about your services and how you could support our European expansion strategy?";
+  } else if (type === 'marketing') {
+    document.getElementById('marketing-destination').value = "Visit Japan Tourism Board";
+    document.getElementById('marketing-market').value = "European luxury travelers";
+    document.getElementById('marketing-language').value = "German";
+  } else if (type === 'report') {
+    document.getElementById('report-input').value = "Q1 2025 Performance Report: Total revenue increased 14% YoY to EUR 4.2M. Asia Pacific region showed strong recovery with 22% growth. European routes underperformed by 8% due to new aviation regulations. Hotel representation segment grew 31%. Staff costs increased 18% due to new office openings in Tokyo and Singapore. Client retention rate stands at 87%. Three new airline clients onboarded this quarter.";
+  }
+}
+
+function loadingHTML(msg) {
+  return `<div class="text-center py-10">
+    <div class="typing"><span></span><span></span><span></span></div>
+    <p class="text-sm font-semibold text-slate-700 mt-4">${msg}</p>
+    <p class="text-xs mt-1 text-slate-400">This may take 15–20 seconds</p>
+  </div>`;
+}
+
+async function runPipeline() {
+  const text = document.getElementById('pipeline-input').value.trim();
+  if (!text) return alert('Please enter an inquiry first.');
+  const el = document.getElementById('pipeline-result');
+  el.classList.remove('hidden');
+  el.innerHTML = loadingHTML('4 AI agents running in the background...');
+  try {
+    const res = await fetch('/api/pipeline', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({text}) });
+    const data = await res.json();
+    showPipelineResult(data);
+    refreshAll();
+  } catch(e) {
+    el.innerHTML = '<p class="text-red-500 text-sm text-center py-4">Something went wrong. Please try again.</p>';
+  }
+}
+
+function showPipelineResult(data) {
+  const c = data.classification || {};
+  const r = data.response || {};
+  const priority = c.priority || 'Medium';
+  const bc = priority === 'High' ? 'badge-high' : priority === 'Medium' ? 'badge-medium' : 'badge-low';
+  const el = document.getElementById('pipeline-result');
+  el.classList.remove('hidden');
+  el.innerHTML = `
+    <div class="flex items-center justify-between mb-5">
+      <p class="font-semibold text-slate-800">Pipeline Complete ✓</p>
+      <span class="text-xs px-2 py-1 rounded-lg font-semibold ${bc}">${priority} Priority</span>
+    </div>
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="result-section"><p class="text-xs text-slate-400 mb-1">Category</p><p class="text-sm font-semibold text-indigo-600">${c.category||'-'}</p></div>
+      <div class="result-section"><p class="text-xs text-slate-400 mb-1">Language</p><p class="text-sm font-semibold text-purple-600">${c.language||'-'}</p></div>
+      <div class="result-section"><p class="text-xs text-slate-400 mb-1">Client</p><p class="text-sm font-semibold text-slate-800">${c.client_name||'Unknown'}</p></div>
+      <div class="result-section"><p class="text-xs text-slate-400 mb-1">Department</p><p class="text-sm font-semibold text-slate-800">${c.department||'-'}</p></div>
+    </div>
+    <div class="result-section mb-3"><p class="text-xs text-slate-400 mb-1">Summary</p><p class="text-sm text-slate-700">${c.summary||'-'}</p></div>
+    <div class="result-section-blue mb-3"><p class="text-xs font-semibold text-blue-600 mb-2">🔍 Market Research (Agent 2)</p><p class="text-xs leading-relaxed text-slate-600">${(data.research_preview||'').substring(0,250)}...</p></div>
+    <div class="result-section-purple mb-3"><p class="text-xs font-semibold text-purple-600 mb-2">✨ AI Personalised Reply — in ${c.language||'English'}</p><p class="text-sm leading-relaxed whitespace-pre-line text-slate-700">${r.suggested_reply||''}</p></div>
+    ${(r.key_points||[]).length>0?`<div class="result-section-green mb-3"><p class="text-xs font-semibold text-emerald-600 mb-2">✅ Key Points</p>${(r.key_points||[]).map(p=>`<p class="text-xs mb-1 text-slate-600">• ${p}</p>`).join('')}</div>`:''}
+    ${(r.actions||[]).length>0?`<div class="result-section-amber mb-3"><p class="text-xs font-semibold text-amber-600 mb-2">🎯 Recommended Actions</p>${(r.actions||[]).map(a=>`<p class="text-xs mb-1 text-slate-600">• ${a}</p>`).join('')}</div>`:''}
+    <div class="result-section-green mb-3"><p class="text-xs font-semibold text-emerald-600 mb-2">🚀 Automated Actions Completed</p><div class="flex flex-wrap gap-2"><span class="text-xs px-2 py-1 rounded-lg font-medium" style="background:#eff6ff;color:#3b82f6;">✓ Slack Notified</span><span class="text-xs px-2 py-1 rounded-lg font-medium" style="background:#f0fdf4;color:#16a34a;">✓ Logged to Database</span>${data.pdf_url?`<a href="${data.pdf_url}" target="_blank" class="text-xs px-2 py-1 rounded-lg font-medium" style="background:#fffbeb;color:#d97706;text-decoration:none;">⬇ Download PDF Proposal</a>`:''}</div></div>
+    <p class="text-xs text-center text-emerald-600 font-medium mt-2">⏱ ~${r.time_saved_minutes||15} minutes saved by automation</p>
+  `;
+}
+
+async function runInquiry() {
+  const text = document.getElementById('inquiry-input').value.trim();
+  if (!text) return alert('Please enter an inquiry.');
+  const el = document.getElementById('inquiry-result');
+  el.classList.remove('hidden');
+  el.innerHTML = loadingHTML('Analysing inquiry...');
+  try {
+    const res = await fetch('/api/inquiry', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) });
+    const d = await res.json();
+    const bc = d.priority==='High'?'badge-high':d.priority==='Medium'?'badge-medium':'badge-low';
+    el.innerHTML = `
+      <div class="flex items-center justify-between mb-4"><p class="font-semibold text-slate-800">Inquiry Analysis</p><span class="text-xs px-2 py-1 rounded-lg font-semibold ${bc}">${d.priority} Priority</span></div>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div class="result-section"><p class="text-xs text-slate-400 mb-1">Category</p><p class="text-sm font-semibold text-indigo-600">${d.category}</p></div>
+        <div class="result-section"><p class="text-xs text-slate-400 mb-1">Language</p><p class="text-sm font-semibold text-purple-600">${d.language}</p></div>
+      </div>
+      <div class="result-section mb-3"><p class="text-xs text-slate-400 mb-1">Summary</p><p class="text-sm text-slate-700">${d.summary}</p></div>
+      <div class="result-section-purple"><p class="text-xs font-semibold text-purple-600 mb-2">✨ AI Suggested Reply — in ${d.language}</p><p class="text-sm leading-relaxed whitespace-pre-line text-slate-700">${d.suggested_reply}</p></div>
+      <p class="text-xs text-center text-emerald-600 font-medium mt-3">⏱ ~${d.time_saved_minutes||8} minutes saved</p>
+    `;
+    refreshAll();
+  } catch(e) { el.innerHTML = '<p class="text-red-500 text-sm text-center py-4">Something went wrong.</p>'; }
+}
+
+async function runMarketing() {
+  const destination = document.getElementById('marketing-destination').value.trim();
+  const target_market = document.getElementById('marketing-market').value.trim();
+  const language = document.getElementById('marketing-language').value;
+  if (!destination||!target_market) return alert('Please fill in both fields.');
+  const el = document.getElementById('marketing-result');
+  el.classList.remove('hidden');
+  el.innerHTML = loadingHTML('Generating multilingual content...');
+  try {
+    const res = await fetch('/api/marketing', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({destination,target_market,language}) });
+    const d = await res.json();
+    el.innerHTML = `
+      <p class="font-semibold text-slate-800 mb-4">Generated Content <span class="text-xs text-indigo-500 ml-2 font-normal">in ${language}</span></p>
+      <div class="space-y-3">
+        <div class="result-section-blue"><p class="text-xs font-semibold text-blue-600 mb-2">💼 LinkedIn Post</p><p class="text-xs leading-relaxed text-slate-600">${d.linkedin_post}</p></div>
+        <div style="background:#fdf2f8;border:1px solid #f9a8d4;border-radius:12px;padding:14px;"><p class="text-xs font-semibold mb-2" style="color:#db2777;">📸 Instagram Caption</p><p class="text-xs leading-relaxed text-slate-600">${d.instagram_caption}</p></div>
+        <div class="result-section-purple"><p class="text-xs font-semibold text-purple-600 mb-2">📧 Email</p><p class="text-xs font-semibold text-slate-800 mb-1">${d.email_subject}</p><p class="text-xs leading-relaxed text-slate-600">${d.email_body}</p></div>
+        <div class="result-section-green"><p class="text-xs font-semibold text-emerald-600 mb-2">📰 Press Release Intro</p><p class="text-xs leading-relaxed text-slate-600">${d.press_release_intro}</p></div>
+      </div>
+    `;
+    refreshAll();
+  } catch(e) { el.innerHTML = '<p class="text-red-500 text-sm text-center py-4">Something went wrong.</p>'; }
+}
+
+async function runReport() {
+  const text = document.getElementById('report-input').value.trim();
+  if (!text) return alert('Please paste a report.');
+  const el = document.getElementById('report-result');
+  el.classList.remove('hidden');
+  el.innerHTML = loadingHTML('Analysing report...');
+  try {
+    const res = await fetch('/api/report', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) });
+    const d = await res.json();
+    const sc = d.sentiment==='Positive'?'text-emerald-600':d.sentiment==='Negative'?'text-red-500':'text-amber-500';
+    el.innerHTML = `
+      <div class="flex items-center justify-between mb-4"><p class="font-semibold text-slate-800">Report Analysis</p><span class="text-xs font-bold ${sc}">${d.sentiment}</span></div>
+      <div class="result-section-blue mb-3"><p class="text-xs font-semibold text-blue-600 mb-1">Executive Summary</p><p class="text-sm text-slate-700 leading-relaxed">${d.executive_summary}</p></div>
+      <div class="result-section-green mb-3"><p class="text-xs font-semibold text-emerald-600 mb-2">✅ Key Insights</p>${(d.key_insights||[]).map(i=>`<p class="text-xs mb-1 text-slate-600">• ${i}</p>`).join('')}</div>
+      <div class="result-section-red mb-3"><p class="text-xs font-semibold text-red-500 mb-2">⚠️ Risks</p>${(d.risks||[]).map(r=>`<p class="text-xs mb-1 text-slate-600">• ${r}</p>`).join('')}</div>
+      <div class="result-section-green"><p class="text-xs font-semibold text-emerald-600 mb-2">🎯 Recommended Actions</p>${(d.recommended_actions||[]).map(a=>`<p class="text-xs mb-1 text-slate-600">• ${a}</p>`).join('')}</div>
+    `;
+    refreshAll();
+  } catch(e) { el.innerHTML = '<p class="text-red-500 text-sm text-center py-4">Something went wrong.</p>'; }
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch('/api/stats');
+    statsData = await res.json();
+    const total = statsData.total || 0;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-time').textContent = total * 15;
+    document.getElementById('stat-langs').textContent = Object.keys(statsData.by_language||{}).length;
+    document.getElementById('roi-inquiries').textContent = total;
+    document.getElementById('roi-hours').textContent = (total * 15 / 60).toFixed(1) + 'h';
+    document.getElementById('roi-cost').textContent = '€' + (total * 15 / 60 * 45).toFixed(0);
+    document.getElementById('no-data-msg').style.display = total > 0 ? 'none' : 'block';
+    renderChart('category');
+  } catch(e) {}
+}
+
+function renderChart(type) {
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+  const maps = { category: statsData.by_category||{}, language: statsData.by_language||{}, priority: statsData.by_priority||{} };
+  const colorSets = {
+    category: ['#6366f1','#8b5cf6','#a78bfa','#60a5fa','#34d399','#f472b6'],
+    language: ['#60a5fa','#6366f1','#34d399','#f472b6','#a78bfa','#fbbf24'],
+    priority: ['#ef4444','#f59e0b','#22c55e']
+  };
+  const data = maps[type];
+  const labels = Object.keys(data);
+  const values = Object.values(data);
+  if (!labels.length) return;
+  chartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colorSets[type], borderWidth: 2, borderColor: '#ffffff', hoverOffset: 6 }] },
+    options: { responsive: true, plugins: { legend: { labels: { color: '#64748b', font: { size: 11 }, boxWidth: 10 } } } }
+  });
+}
+
+function switchChart(type, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChart(type);
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch('/api/history');
+    const rows = await res.json();
+    const el = document.getElementById('history-list');
+    if (!rows.length) { el.innerHTML = '<p class="text-xs text-center py-4 text-slate-400">No activity yet</p>'; return; }
+    el.innerHTML = rows.slice(0,10).map(r => `
+      <div class="rounded-xl p-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-semibold text-indigo-600">${r.agent_type}</span>
+          <span class="text-xs text-slate-400">${r.timestamp}</span>
+        </div>
+        <p class="text-xs text-slate-500 truncate">${r.summary||r.input_text}</p>
+        <p class="text-xs text-slate-400 mt-1">${r.category} · ${r.language}</p>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+function refreshAll() { loadStats(); loadHistory(); }
+refreshAll();
+setInterval(refreshAll, 30000);
+</script>
+<!-- Footer: About the Builder -->
+<div class="max-w-7xl mx-auto px-6 pb-10 mt-6">
+  <div class="card p-8" style="background:linear-gradient(135deg,#f5f3ff,#eff6ff);border-color:#ddd6fe;">
+    <div class="flex flex-wrap gap-8 items-start justify-between">
+
+      <!-- Left: Identity -->
+      <div class="flex-1" style="min-width:280px;">
+        <div class="flex items-center gap-4 mb-4">
+          <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);" class="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0">IM</div>
+          <div>
+            <h3 class="font-bold text-slate-800 text-lg">Iswarya Malayamaan</h3>
+            <p class="text-sm font-medium text-indigo-600">AI Engineer</p>
+            <p class="text-xs text-slate-400 flex items-center gap-1 mt-1">📍 Germany 🇩🇪</p>
+          </div>
+        </div>
+        <p class="text-sm leading-relaxed text-slate-600 mb-4">Building scalable, production-ready AI solutions end-to-end — from LLM applications and multi-agent systems to data platforms and intelligent workflows that deliver measurable business impact.</p>
+        <p class="text-sm leading-relaxed text-slate-600">This project was designed and built entirely from scratch as a demonstration of applied AI engineering — combining agentic pipelines, low-code automation, real-time web research, and multi-language content generation into a single deployable platform relevant to global travel operations.</p>
+      </div>
+
+      <!-- Middle: Skills -->
+      <div style="min-width:220px;">
+        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Skills & Technologies</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#ede9fe;color:#7c3aed;">⭐ GenAI</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#dbeafe;color:#2563eb;">🤖 LLMs</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#f0fdf4;color:#16a34a;">🔷 RAG</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#ede9fe;color:#7c3aed;">⭐ LangChain</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#dbeafe;color:#2563eb;">🤖 LangGraph</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#f0fdf4;color:#16a34a;">🔷 Python</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#fffbeb;color:#d97706;">⭐ AWS</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#fdf2f8;color:#db2777;">🔷 GCP</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#dbeafe;color:#2563eb;">🤖 NLP</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#ede9fe;color:#7c3aed;">⭐ MLOps</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#f0fdf4;color:#16a34a;">🤖 AI Agents</span>
+          <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:#fffbeb;color:#d97706;">🔷 Docker</span>
+        </div>
+      </div>
+
+      <!-- Right: Contact -->
+      <div style="min-width:200px;">
+        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Get in Touch</p>
+        <div class="space-y-3">
+          <a href="mailto:iswarya.abinayam@gmail.com" class="flex items-center gap-3 group" style="text-decoration:none;">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#fef2f2;">📧</div>
+            <div>
+              <p class="text-xs text-slate-400">Email</p>
+              <p class="text-xs font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">iswarya.abinayam@gmail.com</p>
+            </div>
+          </a>
+          <a href="https://linkedin.com/in/iswarya-malayamaan-13362a125" target="_blank" class="flex items-center gap-3 group" style="text-decoration:none;">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#eff6ff;">💼</div>
+            <div>
+              <p class="text-xs text-slate-400">LinkedIn</p>
+              <p class="text-xs font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">iswarya-malayamaan</p>
+            </div>
+          </a>
+          <a href="https://github.com/IshuDhana" target="_blank" class="flex items-center gap-3 group" style="text-decoration:none;">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#f8fafc;">🐙</div>
+            <div>
+              <p class="text-xs text-slate-400">GitHub</p>
+              <p class="text-xs font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">github.com/IshuDhana</p>
+            </div>
+          </a>
+          <a href="https://ishudhana.github.io/" target="_blank" class="flex items-center gap-3 group" style="text-decoration:none;">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#f0fdf4;">🌐</div>
+            <div>
+              <p class="text-xs text-slate-400">Portfolio</p>
+              <p class="text-xs font-medium text-slate-700 group-hover:text-indigo-600 transition-colors">ishudhana.github.io</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="mt-6 pt-5" style="border-top:1px solid #ddd6fe;">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="text-xs text-slate-400">Built with Claude Opus · FastAPI · Tavily · Zapier · Slack · PostgreSQL · Railway</p>
+        <p class="text-xs font-medium text-indigo-500">Designed & built by Iswarya Malayamaan · AI Engineer · Germany 🇩🇪</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

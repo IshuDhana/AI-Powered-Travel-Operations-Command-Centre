@@ -9,8 +9,8 @@ management reporting.
 ---
 
 ## Live Demo
-🔗 [View Live App](YOUR_RAILWAY_URL_HERE)
-📹 [Watch Demo Video](YOUR_YOUTUBE_URL_HERE)
+🔗 [View Live App](YOUR_RAILWAY_URL_HERE ON REQUEST ONLY) 
+📹 [Watch Demo Video](https://drive.google.com/file/d/1cHSR4dGBJCdDx1CHPobOUBLW4S7FMg7S/view?usp=sharing)
 
 ---
 
